@@ -19,8 +19,8 @@ const char DisplayCC[10] = {0b0111111, 0b0000110,
 
 void Timer_Setup()
 {
-	TCCR0A = (1<<WGM01)|(1<<COM0A1);							 // WMG01 is set as 1 to make TIMERA work in CTC. OCR0A is set (to zero) at compare match
-	OCR0A=MaxVal;												 // MaxVal=128. OCR0A is the register used to compare TCNT0 counter register.
+	TCCR0A = (1<<WGM01)|(1<<COM0A1);							// WMG01 is set as 1 to make TIMERA work in CTC. OCR0A is set (to zero) at compare match
+	OCR0A=MaxVal;												// MaxVal=128. OCR0A is the register used to compare TCNT0 counter register.
 }
 
 void System_Init()
@@ -52,8 +52,8 @@ ISR(INT0_vect)
 	if(fsmState==zero)
 	{
 		fsmState=start;
-		TCCR0B = (1<<CS00);
-	}																 // Prescaler=0, counter starts
+		TCCR0B = (1<<CS00);										// Prescaler=0, counter starts
+	}																
 	else
 	{
 		if (fsmState==start)
@@ -98,6 +98,6 @@ ISR(TIMER0_COMPA_vect)
 	}
 	if (fsmState!=lap)
 	{
-		Led_Output(counter);										// Displays actual count
+		Led_Output(counter);									// Displays actual count
 	}
 }
