@@ -4,18 +4,18 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
-#define MaxVal 128
+#define MaxVal 128;
 
 const enum fsmStates {zero, start, stop, lap} fsm;
 volatile enum fsmStates fsmState = zero;						 // fsmState is declared as "volatile" because it's a global variable modified by an ISR.
 volatile float counter = 0;
-volatile float auxcounter=0;
+volatile float auxcounter = 0;
 
-const uint8_t DisplayCC[10] = {0b0111111, 0b0000110,
-	0b1011011, 0b1001111,
-	0b1100110, 0b1101101,
-	0b1111101, 0b0000111,
-    0b1111111, 0b1101111};
+const uint8_t DisplayCC[10] = {0b11111110, 0b10110000,
+	0b11101101, 0b11111001,
+	0b10110011, 0b11011011,
+	0b11011111, 0b11110000,
+    0b11111111, 0b11110011};
 const uint8_t* pDisplayCC = DisplayCC;
 
 void Timer_Setup()
@@ -36,7 +36,29 @@ void System_Init()
 
 void Led_Output(float input)
 {
+	uint8_t decimas=input, decenas=input/10, unidades, pdecimal= 0b01111111;
+	decimas=10*(input-decimas);
+	unidades=input-10*decenas;
 	
+	//CONTROL DIGITO decimas
+	PORTA=0b01111111;
+	PORTC=(*(pDisplayCC+decimas) & pdecimal);
+	_delay_ms(1);
+
+	PORTC=0b00000000;
+	//CONTROL DIGITO segundos
+	PORTA=0b10111111;
+	PORTC=*(pDisplayCC+unidades);
+	_delay_ms(1);
+
+	if (decenas>0)
+	{
+		PORTC=0b00000000;
+		//CONTROL DIGITO decenas
+		PORTA=0b11011111;
+		PORTC=(*(pDisplayCC+decenas) & pdecimal);
+		_delay_ms(1);
+	}
 }
 
 int main(void)
@@ -44,16 +66,18 @@ int main(void)
 	System_Init();
 	Timer_Setup();
 	sei();
-
+	
 	while (1) 
 	{
-			if (fsmState!=lap)
+		if ((fsmState==start) | (fsmState==lap))
+		{
+			counter=counter+0.1;
+			_delay_ms(97.491808);							   // Delay of 100 ms aproximately (taking into account the offset time due to former delays and counter)
+			if (counter>=60.0)
 			{
-				Led_Output(counter);									// Displays actual count
+				counter=0;
 			}
-			else {
-				Led_Output(auxcounter);									// Displays count before lap state
-			}
+		}
 	}
 }
 
@@ -62,7 +86,7 @@ ISR(INT0_vect)
 	if(fsmState==zero)
 	{
 		fsmState=start;
-		TCCR0B = (1<<CS00);										// Prescaler=0, counter starts
+		TCCR0B = (1<<CS02)|(1<<CS00);							// Prescaler=1024, counter starts
 	}																
 	else
 	{
@@ -101,10 +125,12 @@ ISR(INT1_vect)
 
 ISR(TIMER0_COMPA_vect)
 {
-	counter=counter+0.1;
-	_delay_ms(100);
-	if (counter>=60.0)
+	if (fsmState!=lap)
 	{
-		counter=counter-60.0;
+		Led_Output(counter);								// Displays actual count
+	}
+	else 
+	{
+		Led_Output(auxcounter);								// Displays count before lap state
 	}
 }
